@@ -30,13 +30,16 @@ def get_autogen_model_client():
     """
     if settings.llm_provider == LLMProvider.OLLAMA:
         # Ollama exposes an OpenAI-compatible endpoint
+        # Determine capabilities based on model name
+        is_thinking = "thinking" in settings.llm_model
+
         return OpenAIChatCompletionClient(
             model=settings.llm_model,
             base_url=f"{settings.ollama_host}/v1",
             api_key="ollama",  # Ollama doesn't require API key
             model_info={
                 "vision": False,
-                "function_calling": True,
+                "function_calling": not is_thinking,  # Thinking models might struggle with tools or output thought traces
                 "json_output": False,
                 "family": ModelFamily.UNKNOWN,
             },

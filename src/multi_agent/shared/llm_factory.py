@@ -26,8 +26,8 @@ class LLMType(str, Enum):
 RECOMMENDED_MODELS = {
     LLMProvider.OLLAMA: {
         LLMType.GENERAL: "mistral",
-        LLMType.CODING: "codellama",
-        LLMType.REASONING: "mistral",
+        LLMType.CODING: "qwen2.5-coder",
+        LLMType.REASONING: "lfm2.5-thinking:1.2b",
     },
     LLMProvider.OPENAI: {
         LLMType.GENERAL: "gpt-4o-mini",
