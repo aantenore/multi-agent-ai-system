@@ -16,7 +16,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from loguru import logger
 
 from multi_agent.shared import create_llm, settings
@@ -75,23 +75,16 @@ def main():
         # Add user message to memory
         memory.add_user(user_input)
 
-        # Prepare messages for LLM
-        messages = [
-            (
-                SystemMessage(content=memory._system_prompt)
-                if memory._system_prompt
-                else None
-            ),
-            *[
-                (
-                    HumanMessage(content=m.content)
-                    if m.role == "user"
-                    else type("AIMessage", (), {"content": m.content})()
-                )
-                for m in memory._messages
-            ],
-        ]
-        messages = [m for m in messages if m is not None]
+        # Prepare messages for LLM using proper LangChain message types
+        messages = []
+        if memory._system_prompt:
+            messages.append(SystemMessage(content=memory._system_prompt))
+
+        for msg in memory._messages:
+            if msg.role == "user":
+                messages.append(HumanMessage(content=msg.content))
+            elif msg.role == "assistant":
+                messages.append(AIMessage(content=msg.content))
 
         # Generate response
         print("\n🤖 Assistant: ", end="", flush=True)
