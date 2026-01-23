@@ -11,6 +11,7 @@ Key differences with LangGraph:
 
 from typing import Any
 
+from autogen_core.models import ModelFamily
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
@@ -33,6 +34,12 @@ def get_autogen_model_client():
             model=settings.llm_model,
             base_url=f"{settings.ollama_host}/v1",
             api_key="ollama",  # Ollama doesn't require API key
+            model_info={
+                "vision": False,
+                "function_calling": True,
+                "json_output": False,
+                "family": ModelFamily.UNKNOWN,
+            },
         )
     elif settings.llm_provider == LLMProvider.OPENAI:
         return OpenAIChatCompletionClient(
