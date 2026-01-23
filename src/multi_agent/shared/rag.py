@@ -249,7 +249,8 @@ class RAGAgent:
         # Build context string
         context_parts = []
         for i, r in enumerate(results, 1):
-            source = r.get("metadata", {}).get("source", "Unknown")
+            metadata = r.get("metadata") or {}
+            source = metadata.get("source", "Unknown")
             context_parts.append(f"[{i}] Source: {source}\n{r['document']}")
 
         context = "\n\n".join(context_parts)
