@@ -35,6 +35,46 @@ def get_examples():
     return [f for f in files]
 
 
+def get_ollama_models():
+    """Get list of available Ollama models."""
+    try:
+        # Run ollama list
+        # output format is: NAME    ID    SIZE    MODIFIED
+        result = subprocess.run(
+            ["ollama", "list"], capture_output=True, text=True, check=True
+        )
+        lines = result.stdout.strip().split("\n")[1:]  # Skip header
+        return [line.split()[0] for line in lines if line.strip()]
+    except (FileNotFoundError, subprocess.SubprocessError):
+        return []
+
+
+def get_remote_models():
+    """Get list of configured remote models."""
+    models = []
+    # Check for API keys in env (assuming they are set in current env)
+    # We try to read .env manually to be sure, or just trust os.environ
+    # For a launcher, trusting os.environ + simple .env check is good enough
+    env_content = ""
+    if Path(".env").exists():
+        try:
+            env_content = Path(".env").read_text(encoding="utf-8")
+        except Exception:
+            pass
+
+    has_openai = "OPENAI_API_KEY" in os.environ or "OPENAI_API_KEY" in env_content
+    has_anthropic = (
+        "ANTHROPIC_API_KEY" in os.environ or "ANTHROPIC_API_KEY" in env_content
+    )
+
+    if has_openai:
+        models.extend(["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"])
+    if has_anthropic:
+        models.extend(["claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"])
+
+    return models
+
+
 def run_script(script_path):
     """Run a python script."""
     print(f"\n{YELLOW}▶ Running {script_path} with model {CURRENT_MODEL}...{RESET}\n")
@@ -54,17 +94,29 @@ def run_script(script_path):
 
 
 def pull_model():
-    """Pull the Ollama model."""
-    model = "lfm2.5-thinking:1.2b"
-    print(f"\n{YELLOW}⬇️  Pulling model {model}...{RESET}\n")
-    try:
-        subprocess.run(["ollama", "pull", model], check=True)
-        print(f"\n{GREEN}✅ Model pulled successfully!{RESET}")
+    """Pull an Ollama model."""
+    print(f"\n{BOLD}Pull Model:{RESET}")
+    print(
+        "Enter the model name to pull (e.g., 'mistral', 'llama3', 'lfm2.5-thinking:1.2b')"
+    )
+    model_name = input(f"{BOLD}Model Name > {RESET}").strip()
 
-        # Auto-switch to this model
-        global CURRENT_MODEL
-        CURRENT_MODEL = model
-        print(f"\n{CYAN}ℹ️  Switched to model: {CURRENT_MODEL}{RESET}")
+    if not model_name:
+        print(f"{RED}No model name entered.{RESET}")
+        input("Press Enter...")
+        return
+
+    print(f"\n{YELLOW}⬇️  Pulling model {model_name}...{RESET}\n")
+    try:
+        subprocess.run(["ollama", "pull", model_name], check=True)
+        print(f"\n{GREEN}✅ Model {model_name} pulled successfully!{RESET}")
+
+        # Ask if user wants to switch to it
+        switch = input(f"\nSwitch to {model_name}? (Y/n) > ").strip().lower()
+        if switch != "n":
+            global CURRENT_MODEL
+            CURRENT_MODEL = model_name
+            print(f"\n{CYAN}ℹ️  Switched to model: {CURRENT_MODEL}{RESET}")
 
     except FileNotFoundError:
         print(f"\n{RED}❌ Ollama not found. Is it installed and in your PATH?{RESET}")
@@ -77,27 +129,45 @@ def pull_model():
 def select_model():
     """Select LLM Model."""
     global CURRENT_MODEL
-    print(f"\n{BOLD}Select Model:{RESET}")
-    print(f"  {GREEN}[1]{RESET} mistral (Default)")
-    print(f"  {GREEN}[2]{RESET} lfm2.5-thinking:1.2b (Reasoning)")
-    print(f"  {GREEN}[3]{RESET} gpt-4o-mini (OpenAI)")
-    print(f"  {GREEN}[4]{RESET} Custom...")
 
-    choice = input(f"\n{BOLD}Select > {RESET}").strip()
+    print(f"\n{BOLD}Fetching available models...{RESET}")
+    ollama_models = get_ollama_models()
+    remote_models = get_remote_models()
 
-    if choice == "1":
-        CURRENT_MODEL = "mistral"
-    elif choice == "2":
-        CURRENT_MODEL = "lfm2.5-thinking:1.2b"
-    elif choice == "3":
-        CURRENT_MODEL = "gpt-4o-mini"
-    elif choice == "4":
+    all_models = sorted(list(set(ollama_models + remote_models)))
+
+    if not all_models:
+        print(
+            f"{RED}No models found. Please pull a model with Ollama or configure API keys.{RESET}"
+        )
+        print(f"{YELLOW}(You can still enter a custom model name){RESET}")
+
+    print(f"\n{BOLD}Available Models:{RESET}")
+    for i, m in enumerate(all_models, 1):
+        if m == CURRENT_MODEL:
+            print(f"  {GREEN}[{i}]{RESET} {m} {CYAN}(Current){RESET}")
+        else:
+            print(f"  {GREEN}[{i}]{RESET} {m}")
+
+    print(f"  {GREEN}[C]{RESET} Custom...")
+
+    choice = input(f"\n{BOLD}Select > {RESET}").strip().lower()
+
+    if choice == "c":
         custom = input("Enter model name: ").strip()
         if custom:
             CURRENT_MODEL = custom
     else:
-        print(f"{RED}Invalid selection.{RESET}")
-        input("Press Enter...")
+        try:
+            idx = int(choice) - 1
+            if 0 <= idx < len(all_models):
+                CURRENT_MODEL = all_models[idx]
+            else:
+                print(f"{RED}Invalid selection.{RESET}")
+                input("Press Enter...")
+        except ValueError:
+            print(f"{RED}Invalid input.{RESET}")
+            input("Press Enter...")
 
 
 def main():
@@ -115,7 +185,7 @@ def main():
 
         print(f"\n{BOLD}Tools:{RESET}")
         print(f"  {BLUE}[S]{RESET} Select/Change Model")
-        print(f"  {BLUE}[M]{RESET} Pull Model (lfm2.5-thinking:1.2b)")
+        print(f"  {BLUE}[M]{RESET} Pull New Model")
         print(f"  {RED}[Q]{RESET} Quit")
 
         choice = input(f"\n{BOLD}Select an option > {RESET}").strip().lower()
