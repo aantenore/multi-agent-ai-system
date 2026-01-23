@@ -1,0 +1,161 @@
+"""
+Factory for creating LLM clients.
+
+Supports transparent switching between local (Ollama) and remote (OpenAI, Anthropic) models.
+This is the fundamental pattern for abstracting providers.
+"""
+
+from enum import Enum
+from typing import Any
+
+from langchain_core.language_models import BaseChatModel
+from loguru import logger
+
+from multi_agent.shared.config import settings, LLMProvider
+
+
+class LLMType(str, Enum):
+    """LLM type for specific use cases."""
+
+    GENERAL = "general"  # General tasks
+    CODING = "coding"  # Code generation
+    REASONING = "reasoning"  # Complex reasoning
+
+
+# Recommended models per type
+RECOMMENDED_MODELS = {
+    LLMProvider.OLLAMA: {
+        LLMType.GENERAL: "mistral",
+        LLMType.CODING: "codellama",
+        LLMType.REASONING: "mistral",
+    },
+    LLMProvider.OPENAI: {
+        LLMType.GENERAL: "gpt-4o-mini",
+        LLMType.CODING: "gpt-4o",
+        LLMType.REASONING: "gpt-4o",
+    },
+}
+
+
+def create_llm(
+    provider: LLMProvider | None = None,
+    model: str | None = None,
+    llm_type: LLMType = LLMType.GENERAL,
+    **kwargs: Any,
+) -> BaseChatModel:
+    """
+    Create an LLM instance based on configuration.
+
+    Args:
+        provider: Provider to use (default: from settings)
+        model: Specific model (default: from settings or recommended)
+        llm_type: Task type for automatic model selection
+        **kwargs: Additional parameters for the provider
+
+    Returns:
+        BaseChatModel instance ready to use
+
+    Example:
+        >>> llm = create_llm()  # Uses settings
+        >>> llm = create_llm(provider=LLMProvider.OPENAI, model="gpt-4o")
+        >>> llm = create_llm(llm_type=LLMType.CODING)  # Chooses model for coding
+    """
+    # Determine provider and model
+    provider = provider or settings.llm_provider
+
+    if model is None:
+        # Use model from settings or recommended for the type
+        model = settings.llm_model or RECOMMENDED_MODELS.get(provider, {}).get(llm_type)
+
+    logger.info(f"Creating LLM: provider={provider.value}, model={model}")
+
+    # Common parameters
+    common_params = {
+        "temperature": kwargs.pop("temperature", settings.agent_temperature),
+        "max_tokens": kwargs.pop("max_tokens", settings.agent_max_tokens),
+    }
+
+    if provider == LLMProvider.OLLAMA:
+        return _create_ollama_llm(model, common_params, **kwargs)
+    elif provider == LLMProvider.OPENAI:
+        return _create_openai_llm(model, common_params, **kwargs)
+    elif provider == LLMProvider.ANTHROPIC:
+        return _create_anthropic_llm(model, common_params, **kwargs)
+    else:
+        raise ValueError(f"Unsupported provider: {provider}")
+
+
+def _create_ollama_llm(model: str, params: dict, **kwargs) -> BaseChatModel:
+    """Create Ollama LLM (local)."""
+    from langchain_ollama import ChatOllama
+
+    return ChatOllama(
+        model=model,
+        base_url=settings.ollama_host,
+        temperature=params["temperature"],
+        num_predict=params["max_tokens"],
+        **kwargs,
+    )
+
+
+def _create_openai_llm(model: str, params: dict, **kwargs) -> BaseChatModel:
+    """Create OpenAI LLM (remote)."""
+    from langchain_openai import ChatOpenAI
+
+    if not settings.openai_api_key:
+        raise ValueError("OPENAI_API_KEY not configured in .env")
+
+    return ChatOpenAI(
+        model=model,
+        api_key=settings.openai_api_key,
+        base_url=settings.openai_base_url,
+        temperature=params["temperature"],
+        max_tokens=params["max_tokens"],
+        **kwargs,
+    )
+
+
+def _create_anthropic_llm(model: str, params: dict, **kwargs) -> BaseChatModel:
+    """Create Anthropic LLM (remote)."""
+    from langchain_anthropic import ChatAnthropic
+
+    if not settings.anthropic_api_key:
+        raise ValueError("ANTHROPIC_API_KEY not configured in .env")
+
+    return ChatAnthropic(
+        model=model,
+        api_key=settings.anthropic_api_key,
+        temperature=params["temperature"],
+        max_tokens=params["max_tokens"],
+        **kwargs,
+    )
+
+
+def list_available_models(provider: LLMProvider | None = None) -> list[str]:
+    """
+    List available models for a provider.
+
+    For Ollama, queries the local server.
+    For others, returns a static list.
+    """
+    provider = provider or settings.llm_provider
+
+    if provider == LLMProvider.OLLAMA:
+        try:
+            import httpx
+
+            response = httpx.get(f"{settings.ollama_host}/api/tags", timeout=5.0)
+            if response.status_code == 200:
+                models = response.json().get("models", [])
+                return [m["name"] for m in models]
+        except Exception as e:
+            logger.warning(f"Unable to list Ollama models: {e}")
+        return []
+
+    elif provider == LLMProvider.OPENAI:
+        return ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"]
+
+    elif provider == LLMProvider.ANTHROPIC:
+        return ["claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"]
+
+    return []
