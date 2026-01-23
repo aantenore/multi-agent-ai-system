@@ -8,30 +8,36 @@ Step-by-step instructions to set up and run the multi-agent system from scratch.
 - **Git**: For version control
 - **Windows/macOS/Linux**: Cross-platform
 
-## Step 1: Install Ollama (Local LLM)
+## Step 1: LLM Setup & Costs
 
-### Windows
-```powershell
-winget install Ollama.Ollama
-```
+This system supports both local (free) and remote (paid) models.
 
-### macOS
-```bash
-brew install ollama
-```
+### Option A: Ollama (Free & Local) - Recommended
+Run high-quality models like Mistral, Llama 3, and DeepSeek on your own computer.
+- **Cost**: $0 (Free)
+- **Privacy**: 100% Private (No data leaves your machine)
+- **Requirement**: Decent CPU/RAM (GPU recommended for speed)
 
-### Linux
-```bash
-curl -fsSL https://ollama.ai/install.sh | sh
-```
+**Installation**:
+1. Download from [ollama.com](https://ollama.com)
+2. Install and run `ollama serve`
+3. Download a model: `ollama pull mistral`
 
-## Step 2: Download a Model
+### Option B: OpenAI / Anthropic (Paid & Remote)
+Use state-of-the-art models like GPT-4o or Claude 3.5 Sonnet.
+- **Cost**: pay-per-token (requires credit card on file)
+- **Performance**: Generally smarter and faster than local models
+- **Requirement**: API Key
 
-```bash
-ollama serve              # Start service
-ollama pull mistral       # Download (~4GB)
-ollama list               # Verify
-```
+**Setup**:
+1. Get an API key from [platform.openai.com](https://platform.openai.com) or [console.anthropic.com](https://console.anthropic.com)
+2. Add it to your `.env` file:
+   ```env
+   OPENAI_API_KEY=sk-...
+   ```
+
+## Step 2: Install Dependencies
+
 
 ## Step 3: Clone and Setup
 
