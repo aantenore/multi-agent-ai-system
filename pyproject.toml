@@ -28,6 +28,9 @@ dependencies = [
     
     # Memory & RAG (optional but useful)
     "chromadb>=0.5.0",
+    
+    # A2A Protocol (HTTP server/client)
+    "aiohttp>=3.9.0",
 ]
 
 [project.optional-dependencies]
