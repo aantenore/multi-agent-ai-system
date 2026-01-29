@@ -1,10 +1,11 @@
 """
-Example 5: Agent with Memory and Basic RAG.
+Example 5: Interactive Agent with Memory and Basic RAG.
 
 Demonstrates:
 - Persistent conversational memory
 - Shared memory between agents
-- Simple RAG with ChromaDB (optional)
+- Simple RAG with ChromaDB
+- Interactive chat with memory context
 
 Usage:
     python examples/05_memory_demo.py
@@ -15,6 +16,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from loguru import logger
+
+from multi_agent.shared import create_llm
 from multi_agent.shared.memory import AgentMemory, SharedMemory, create_agent_memory
 
 
@@ -102,6 +107,7 @@ def demo_simple_rag():
             "AutoGen is developed by Microsoft for conversational agents.",
             "Ollama allows running LLMs locally on your own computer.",
             "Python is a high-level programming language.",
+            "Google Gemini is a powerful multimodal AI model family.",
         ]
 
         collection.add(
@@ -125,6 +131,81 @@ def demo_simple_rag():
         print("This example is optional to demonstrate RAG.")
 
 
+def interactive_memory_chat():
+    """Interactive chat with memory demonstration."""
+    print("\n\n💬 Interactive Chat with Memory")
+    print("-" * 50)
+    print("Chat with an AI that remembers context!")
+    print(
+        "Type 'exit' or 'quit' to end, 'clear' to clear memory, 'history' to see memory\n"
+    )
+
+    try:
+        llm = create_llm()
+    except Exception as e:
+        print(f"❌ Error creating LLM: {e}")
+        print("Skipping interactive demo.")
+        return
+
+    memory = AgentMemory(agent_name="memory_demo")
+    memory.set_system_prompt(
+        "You are a helpful assistant demonstrating memory capabilities. "
+        "Reference previous parts of our conversation when relevant."
+    )
+
+    while True:
+        try:
+            user_input = input("\n👤 You: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("\n\n👋 Goodbye!")
+            break
+
+        if not user_input:
+            continue
+        if user_input.lower() in ("exit", "quit"):
+            print("\n👋 Goodbye!")
+            break
+        if user_input.lower() == "clear":
+            memory.clear()
+            print("🗑️ Memory cleared!")
+            continue
+        if user_input.lower() == "history":
+            print(f"\n📜 Memory contains {len(memory)} messages:")
+            for msg in memory._messages:
+                preview = (
+                    msg.content[:60] + "..." if len(msg.content) > 60 else msg.content
+                )
+                print(f"   [{msg.role}]: {preview}")
+            continue
+
+        # Add user message
+        memory.add_user(user_input)
+
+        # Build messages
+        messages = []
+        if memory._system_prompt:
+            messages.append(SystemMessage(content=memory._system_prompt))
+        for msg in memory._messages:
+            if msg.role == "user":
+                messages.append(HumanMessage(content=msg.content))
+            elif msg.role == "assistant":
+                messages.append(AIMessage(content=msg.content))
+
+        # Generate and stream response
+        print("\n🤖 Assistant: ", end="", flush=True)
+        try:
+            full_response = ""
+            for chunk in llm.stream(messages):
+                content = chunk.content if hasattr(chunk, "content") else str(chunk)
+                print(content, end="", flush=True)
+                full_response += content
+            print()
+            memory.add_assistant(full_response)
+        except Exception as e:
+            print(f"\n❌ Error: {e}")
+            logger.exception("Error during generation")
+
+
 def main():
     print("\n" + "=" * 60)
     print("🧠 Multi-Agent Memory System Demo")
@@ -133,6 +214,7 @@ def main():
     demo_agent_memory()
     demo_shared_memory()
     demo_simple_rag()
+    interactive_memory_chat()
 
     print("\n" + "=" * 60)
     print("✅ Demo completed!")

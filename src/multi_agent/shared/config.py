@@ -15,6 +15,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class LLMProvider(str, Enum):
     """Supported LLM providers."""
 
+    GEMINI = "gemini"
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -31,10 +32,15 @@ class Settings(BaseSettings):
 
     # LLM Configuration
     llm_provider: LLMProvider = Field(
-        default=LLMProvider.OLLAMA,
-        description="LLM provider to use (ollama, openai, anthropic)",
+        default=LLMProvider.GEMINI,
+        description="LLM provider to use (gemini, ollama, openai, anthropic)",
     )
-    llm_model: str = Field(default="mistral", description="Model name to use")
+    llm_model: str = Field(
+        default="gemini-3-pro-preview", description="Model name to use"
+    )
+
+    # Google Gemini settings
+    google_api_key: str = Field(default="", description="Google API key for Gemini")
 
     # Ollama settings
     ollama_host: str = Field(

@@ -1,5 +1,5 @@
 """
-Example 6: RAG (Retrieval-Augmented Generation)
+Example 6: Interactive RAG (Retrieval-Augmented Generation)
 
 Demonstrates how to use RAG to give agents access to a knowledge base.
 The agent retrieves relevant context before generating answers.
@@ -13,15 +13,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from loguru import logger
 from multi_agent.shared.rag import RAGStore, RAGAgent
 
 
-def main():
-    print("\n" + "=" * 60)
-    print("🔍 RAG (Retrieval-Augmented Generation) Demo")
-    print("=" * 60)
-
-    # Create RAG store
+def create_knowledge_base():
+    """Create and populate the knowledge base."""
     print("\n📚 Creating knowledge base...")
     rag = RAGStore(collection_name="demo_knowledge")
 
@@ -45,13 +42,22 @@ def main():
         """Ollama is a tool for running large language models locally.
         It supports models like Mistral, Llama, and CodeLlama.
         Running models locally provides privacy and no API costs.""",
+        """Google Gemini is a multimodal AI model developed by Google DeepMind.
+        It can understand text, images, audio, and video. The Gemini family
+        includes models like gemini-3-pro-preview for advanced reasoning tasks.""",
+        """Skills in multi-agent systems are reusable capabilities that agents
+        can invoke to perform specific tasks. Examples include calculations,
+        file operations, web searches, and code execution.""",
     ]
 
     rag.add_documents(documents)
     print(f"   Added {len(documents)} documents to knowledge base")
     print(f"   Total documents: {rag.count}")
+    return rag
 
-    # Test semantic search
+
+def demo_semantic_search(rag: RAGStore):
+    """Test semantic search functionality."""
     print("\n🔎 Testing semantic search...")
     queries = [
         "How can agents communicate with each other?",
@@ -64,35 +70,65 @@ def main():
         results = rag.search(query, n_results=2)
         print("   Top results:")
         for i, r in enumerate(results, 1):
-            # Show first 80 chars of each result
             snippet = r["document"][:80].replace("\n", " ") + "..."
             print(f"      {i}. {snippet}")
 
-    # Create RAG Agent
-    print("\n\n🤖 Creating RAG Agent...")
+
+def interactive_rag_chat(rag: RAGStore):
+    """Interactive chat using RAG for knowledge retrieval."""
+    print("\n\n💬 Interactive RAG Chat")
+    print("-" * 50)
+    print("Ask questions about the knowledge base!")
+    print("Type 'exit' or 'quit' to end, 'search <query>' for raw search\n")
+
     try:
         agent = RAGAgent(rag_store=rag)
-
-        # Ask questions
-        questions = [
-            "What frameworks can I use for multi-agent AI systems?",
-            "How can I run LLMs without paying for API calls?",
-        ]
-
-        for question in questions:
-            print(f"\n❓ Question: {question}")
-            print("-" * 50)
-
-            try:
-                answer = agent.query(question, n_context=3)
-                print(f"💡 Answer: {answer}")
-            except Exception as e:
-                print(f"⚠️ Could not generate answer: {e}")
-                print("   (Make sure Ollama is running)")
-
     except Exception as e:
         print(f"⚠️ Could not create RAG agent: {e}")
-        print("   The semantic search still works without an LLM!")
+        print("   Make sure your LLM provider is configured correctly.")
+        return
+
+    while True:
+        try:
+            user_input = input("\n❓ You: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("\n\n👋 Goodbye!")
+            break
+
+        if not user_input:
+            continue
+        if user_input.lower() in ("exit", "quit"):
+            print("\n👋 Goodbye!")
+            break
+
+        # Raw search mode
+        if user_input.lower().startswith("search "):
+            query = user_input[7:]
+            print(f"\n🔎 Raw search for: '{query}'")
+            results = rag.search(query, n_results=3)
+            for i, r in enumerate(results, 1):
+                print(f"\n   Result {i}:")
+                print(f"   {r['document'][:200]}...")
+            continue
+
+        # RAG-enhanced answer
+        print("\n🤖 Assistant: ", end="", flush=True)
+        try:
+            answer = agent.query(user_input, n_context=3)
+            print(answer)
+        except Exception as e:
+            print(f"\n⚠️ Error: {e}")
+            logger.exception("RAG query error")
+
+
+def main():
+    print("\n" + "=" * 60)
+    print("🔍 Interactive RAG (Retrieval-Augmented Generation) Demo")
+    print("=" * 60)
+
+    rag = create_knowledge_base()
+    demo_semantic_search(rag)
+    interactive_rag_chat(rag)
 
     # Cleanup
     rag.clear()

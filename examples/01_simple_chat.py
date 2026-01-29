@@ -1,11 +1,12 @@
 """
-Example 1: Simple chat with local model.
+Example 1: Simple chat with local or remote model.
 
 This is the most basic example - a 1:1 chat with an LLM.
 Demonstrates how to use the LLM factory for transparent local/remote switching.
 
 Usage:
     python examples/01_simple_chat.py
+    python examples/01_simple_chat.py --provider gemini --model gemini-3-pro-preview
     python examples/01_simple_chat.py --provider openai --model gpt-4o-mini
 """
 
@@ -26,26 +27,38 @@ from multi_agent.shared.memory import AgentMemory
 
 def main():
     parser = argparse.ArgumentParser(description="Simple chat with LLM")
-    parser.add_argument("--provider", choices=["ollama", "openai"], default="ollama")
+    parser.add_argument(
+        "--provider",
+        choices=["gemini", "ollama", "openai"],
+        default=None,
+        help="LLM provider (default: from settings)",
+    )
     parser.add_argument("--model", default=None, help="Model to use")
     args = parser.parse_args()
 
     # Configure provider
-    provider = LLMProvider(args.provider)
-    model = args.model or (
-        "mistral" if provider == LLMProvider.OLLAMA else "gpt-4o-mini"
-    )
+    if args.provider:
+        provider = LLMProvider(args.provider)
+    else:
+        provider = settings.llm_provider
+
+    model = args.model or settings.llm_model
 
     print(f"\n🤖 Chat with {provider.value}:{model}")
     print("=" * 50)
-    print("Type 'exit' to quit, 'clear' to clear memory\n")
+    print("Type 'exit' or 'quit' to end, 'clear' to clear memory\n")
 
     # Create LLM and memory
     try:
         llm = create_llm(provider=provider, model=model)
     except Exception as e:
         print(f"❌ Error creating LLM: {e}")
-        print("\nMake sure Ollama is running: ollama serve")
+        if provider == LLMProvider.OLLAMA:
+            print("\nMake sure Ollama is running: ollama serve")
+        elif provider == LLMProvider.GEMINI:
+            print("\nMake sure GOOGLE_API_KEY is set in your .env file")
+        elif provider == LLMProvider.OPENAI:
+            print("\nMake sure OPENAI_API_KEY is set in your .env file")
         return
 
     memory = AgentMemory(agent_name="chat_agent")
@@ -54,7 +67,7 @@ def main():
         "Respond concisely but completely."
     )
 
-    # Chat loop
+    # Interactive chat loop
     while True:
         try:
             user_input = input("\n👤 You: ").strip()
@@ -64,7 +77,7 @@ def main():
 
         if not user_input:
             continue
-        if user_input.lower() == "exit":
+        if user_input.lower() in ("exit", "quit"):
             print("\n👋 Goodbye!")
             break
         if user_input.lower() == "clear":

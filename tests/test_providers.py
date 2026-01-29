@@ -18,12 +18,13 @@ class TestSettings:
     def test_default_values(self):
         """Verify default values."""
         settings = Settings()
-        assert settings.llm_provider == LLMProvider.OLLAMA
-        assert settings.llm_model == "mistral"
+        assert settings.llm_provider == LLMProvider.GEMINI
+        assert settings.llm_model == "gemini-3-pro-preview"
         assert settings.ollama_host == "http://localhost:11434"
 
     def test_provider_enum(self):
         """Verify provider enum."""
+        assert LLMProvider.GEMINI.value == "gemini"
         assert LLMProvider.OLLAMA.value == "ollama"
         assert LLMProvider.OPENAI.value == "openai"
 

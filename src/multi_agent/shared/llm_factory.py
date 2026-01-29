@@ -1,7 +1,7 @@
 """
 Factory for creating LLM clients.
 
-Supports transparent switching between local (Ollama) and remote (OpenAI, Anthropic) models.
+Supports transparent switching between local (Ollama) and remote (OpenAI, Anthropic, Gemini) models.
 This is the fundamental pattern for abstracting providers.
 """
 
@@ -24,6 +24,11 @@ class LLMType(str, Enum):
 
 # Recommended models per type
 RECOMMENDED_MODELS = {
+    LLMProvider.GEMINI: {
+        LLMType.GENERAL: "gemini-3-pro-preview",
+        LLMType.CODING: "gemini-3-pro-preview",
+        LLMType.REASONING: "gemini-3-pro-preview",
+    },
     LLMProvider.OLLAMA: {
         LLMType.GENERAL: "mistral",
         LLMType.CODING: "qwen2.5-coder",
@@ -57,7 +62,7 @@ def create_llm(
 
     Example:
         >>> llm = create_llm()  # Uses settings
-        >>> llm = create_llm(provider=LLMProvider.OPENAI, model="gpt-4o")
+        >>> llm = create_llm(provider=LLMProvider.GEMINI, model="gemini-3-pro-preview")
         >>> llm = create_llm(llm_type=LLMType.CODING)  # Chooses model for coding
     """
     # Determine provider and model
@@ -75,7 +80,9 @@ def create_llm(
         "max_tokens": kwargs.pop("max_tokens", settings.agent_max_tokens),
     }
 
-    if provider == LLMProvider.OLLAMA:
+    if provider == LLMProvider.GEMINI:
+        return _create_gemini_llm(model, common_params, **kwargs)
+    elif provider == LLMProvider.OLLAMA:
         return _create_ollama_llm(model, common_params, **kwargs)
     elif provider == LLMProvider.OPENAI:
         return _create_openai_llm(model, common_params, **kwargs)
@@ -83,6 +90,22 @@ def create_llm(
         return _create_anthropic_llm(model, common_params, **kwargs)
     else:
         raise ValueError(f"Unsupported provider: {provider}")
+
+
+def _create_gemini_llm(model: str, params: dict, **kwargs) -> BaseChatModel:
+    """Create Google Gemini LLM."""
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    if not settings.google_api_key:
+        raise ValueError("GOOGLE_API_KEY not configured in .env")
+
+    return ChatGoogleGenerativeAI(
+        model=model,
+        google_api_key=settings.google_api_key,
+        temperature=params["temperature"],
+        max_output_tokens=params["max_tokens"],
+        **kwargs,
+    )
 
 
 def _create_ollama_llm(model: str, params: dict, **kwargs) -> BaseChatModel:
@@ -140,7 +163,16 @@ def list_available_models(provider: LLMProvider | None = None) -> list[str]:
     """
     provider = provider or settings.llm_provider
 
-    if provider == LLMProvider.OLLAMA:
+    if provider == LLMProvider.GEMINI:
+        return [
+            "gemini-3-pro-preview",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-thinking-exp",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+        ]
+
+    elif provider == LLMProvider.OLLAMA:
         try:
             import httpx
 
