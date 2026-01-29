@@ -112,9 +112,15 @@ def interactive_rag_chat(rag: RAGStore):
             continue
 
         # RAG-enhanced answer
-        print("\n🤖 Assistant: ", end="", flush=True)
+        print("\n   🔍 Retrieving relevant context...")
         try:
+            # We peek at internals to show what's happening
+            results = rag.search(user_input, n_results=3)
+            print(f"   📄 Found {len(results)} relevant documents.")
+
+            print("   🤖 Querying LLM with context...", end="", flush=True)
             answer = agent.query(user_input, n_context=3)
+            print("\n\n🤖 Assistant:")
             print(answer)
         except Exception as e:
             print(f"\n⚠️ Error: {e}")

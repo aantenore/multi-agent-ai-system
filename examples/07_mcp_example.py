@@ -177,7 +177,17 @@ def interactive_mcp_testing(server):
                 "method": "tools/call",
                 "params": {"name": tool_name, "arguments": arguments},
             }
+            print(f"\n   📤 Sending JSON-RPC Request:")
+            print(f"      Method: tools/call")
+            print(f"      Params: {call_request['params']}")
+
             response = server.handle_message(call_request)
+
+            print(f"\n   📥 Received JSON-RPC Response:")
+            if "error" in response:
+                print(f"      Error: {response['error']}")
+            else:
+                print(f"      Result: {response['result']}")
             result = response["result"]["content"][0]["text"]
             print(f"✅ Result: {result}")
 

@@ -169,6 +169,9 @@ def interactive_a2a_orchestrator():
             task.state = TaskState.RUNNING
             print(f"   Status: {task.state.value}")
 
+            print(f"   📡 Connecting to {agent_name} at {AGENTS[agent_name].url}...")
+            print(f"   ⏳ Waiting for agent response...")
+
             # Get "result"
             result = simulate_task_execution(agent_name, task_desc)
             task.state = TaskState.COMPLETED
