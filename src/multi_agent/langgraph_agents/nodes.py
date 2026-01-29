@@ -130,6 +130,10 @@ class AgentNode:
             response = self.llm_with_tools.invoke(messages)
             new_messages.append(response)
 
+        # DEBUG: Log raw content
+        logger.info(f"[{self.name}] Raw content type: {type(response.content)}")
+        logger.info(f"[{self.name}] Raw content: {response.content}")
+
         # Gemini returns list of dicts for content, normalize to string
         if isinstance(response.content, list):
             text_content = "".join(
@@ -139,6 +143,7 @@ class AgentNode:
             )
             # Update content in place (safe for AIMessage)
             response.content = text_content
+            logger.info(f"[{self.name}] Normalized content: {text_content}")
 
         logger.info(f"[{self.name}] Response generated")
 
