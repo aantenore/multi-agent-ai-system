@@ -105,7 +105,15 @@ def main():
             # Streaming response
             full_response = ""
             for chunk in llm.stream(messages):
+                # Handle different response formats (Gemini returns list of dicts)
                 content = chunk.content if hasattr(chunk, "content") else str(chunk)
+                if isinstance(content, list):
+                    # Gemini format: [{'type': 'text', 'text': '...', 'index': 0}]
+                    content = "".join(
+                        item.get("text", "")
+                        for item in content
+                        if isinstance(item, dict) and item.get("type") == "text"
+                    )
                 print(content, end="", flush=True)
                 full_response += content
             print()  # Final newline
