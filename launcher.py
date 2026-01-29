@@ -17,7 +17,14 @@ BOLD = "\033[1m"
 CYAN = "\033[96m"
 
 # Global state
-CURRENT_MODEL = os.getenv("LLM_MODEL", "mistral")
+# Try to get default from env, otherwise fallback to Gemini Flash
+CURRENT_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash-lite")
+if Path(".env").exists():
+    with open(".env", "r") as f:
+        for line in f:
+            if line.startswith("LLM_MODEL="):
+                CURRENT_MODEL = line.split("=", 1)[1].strip()
+                break
 
 
 def print_header():
@@ -52,9 +59,7 @@ def get_ollama_models():
 def get_remote_models():
     """Get list of configured remote models."""
     models = []
-    # Check for API keys in env (assuming they are set in current env)
-    # We try to read .env manually to be sure, or just trust os.environ
-    # For a launcher, trusting os.environ + simple .env check is good enough
+    # Check for API keys in env
     env_content = ""
     if Path(".env").exists():
         try:
@@ -62,10 +67,22 @@ def get_remote_models():
         except Exception:
             pass
 
+    has_google = "GOOGLE_API_KEY" in os.environ or "GOOGLE_API_KEY" in env_content
     has_openai = "OPENAI_API_KEY" in os.environ or "OPENAI_API_KEY" in env_content
     has_anthropic = (
         "ANTHROPIC_API_KEY" in os.environ or "ANTHROPIC_API_KEY" in env_content
     )
+
+    if has_google:
+        models.extend(
+            [
+                "gemini-3-flash-preview",
+                "gemini-3-pro-preview",
+                "gemini-2.5-flash-lite",
+                "gemini-2.0-flash",
+                "gemini-1.5-pro",
+            ]
+        )
 
     if has_openai:
         models.extend(["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"])

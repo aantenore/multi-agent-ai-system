@@ -47,7 +47,8 @@ multi_agent_system/
 ## 🤖 Supported Models
 
 ### Google Gemini (Recommended)
-- `gemini-3-flash-preview` - Fast, great for general tasks (default)
+- `gemini-2.5-flash-lite` - Ultra-fast, lightweight (default)
+- `gemini-3-flash-preview` - Fast, capable general model
 - `gemini-3-pro-preview` - Best for coding and complex reasoning
 - `gemini-2.0-flash` - Balanced performance
 

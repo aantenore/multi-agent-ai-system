@@ -36,7 +36,7 @@ class Settings(BaseSettings):
         description="LLM provider to use (gemini, ollama, openai, anthropic)",
     )
     llm_model: str = Field(
-        default="gemini-3-flash-preview", description="Model name to use"
+        default="gemini-2.5-flash-lite", description="Model name to use"
     )
 
     # Google Gemini settings
