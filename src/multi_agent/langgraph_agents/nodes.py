@@ -11,7 +11,13 @@ where transitions depend on agent output.
 """
 
 from typing import Annotated, TypedDict, Sequence, Literal
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import (
+    BaseMessage,
+    HumanMessage,
+    AIMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from langchain_core.language_models import BaseChatModel
 from langgraph.graph import add_messages
 from loguru import logger
@@ -87,8 +93,42 @@ class AgentNode:
         messages = [SystemMessage(content=self.system_prompt)]
         messages.extend(state["messages"])
 
+        # Track new messages generated in this step
+        new_messages = []
+
         # Invoke LLM
         response = self.llm_with_tools.invoke(messages)
+        new_messages.append(response)
+
+        # Process tool calls if any
+        while hasattr(response, "tool_calls") and response.tool_calls:
+            # If we have tool calls, we need to execute them
+            messages.append(response)  # Add trigger message to context
+
+            for tc in response.tool_calls:
+                tool_name = tc["name"]
+                tool_args = tc["args"]
+                logger.info(f"[{self.name}] Calling tool: {tool_name}")
+
+                # Find the tool
+                tool = next((t for t in self.tools if t.name == tool_name), None)
+                if tool:
+                    try:
+                        result = tool.invoke(tool_args)
+                        content = str(result)
+                    except Exception as e:
+                        content = f"Error executing tool: {e}"
+                else:
+                    content = f"Tool {tool_name} not found."
+
+                # Create ToolMessage
+                tm = ToolMessage(content=content, tool_call_id=tc["id"])
+                new_messages.append(tm)
+                messages.append(tm)  # Add to context for next LLM call
+
+            # Invoke LLM again with tool outputs
+            response = self.llm_with_tools.invoke(messages)
+            new_messages.append(response)
 
         # Gemini returns list of dicts for content, normalize to string
         if isinstance(response.content, list):
@@ -103,7 +143,7 @@ class AgentNode:
         logger.info(f"[{self.name}] Response generated")
 
         return {
-            "messages": [response],
+            "messages": new_messages,
             "current_agent": self.name,
         }
 

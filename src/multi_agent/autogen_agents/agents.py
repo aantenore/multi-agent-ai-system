@@ -44,6 +44,19 @@ def get_autogen_model_client():
                 "family": ModelFamily.UNKNOWN,
             },
         )
+    elif settings.llm_provider == LLMProvider.GEMINI:
+        # Use Google's OpenAI-compatible endpoint
+        return OpenAIChatCompletionClient(
+            model=settings.llm_model,
+            api_key=settings.google_api_key,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            model_info={
+                "vision": True,
+                "function_calling": True,
+                "json_output": True,
+                "family": ModelFamily.UNKNOWN,
+            },
+        )
     elif settings.llm_provider == LLMProvider.OPENAI:
         return OpenAIChatCompletionClient(
             model=settings.llm_model,
