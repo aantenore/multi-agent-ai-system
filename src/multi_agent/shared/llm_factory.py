@@ -23,9 +23,11 @@ class LLMType(str, Enum):
 
 
 # Recommended models per type
+# Flash = faster, cheaper, good for general tasks
+# Pro = more capable, better for coding and complex reasoning
 RECOMMENDED_MODELS = {
     LLMProvider.GEMINI: {
-        LLMType.GENERAL: "gemini-3-pro-preview",
+        LLMType.GENERAL: "gemini-3-flash-preview",
         LLMType.CODING: "gemini-3-pro-preview",
         LLMType.REASONING: "gemini-3-pro-preview",
     },
@@ -166,6 +168,7 @@ def list_available_models(provider: LLMProvider | None = None) -> list[str]:
     if provider == LLMProvider.GEMINI:
         return [
             "gemini-3-pro-preview",
+            "gemini-3-flash-preview",
             "gemini-2.0-flash",
             "gemini-2.0-flash-thinking-exp",
             "gemini-1.5-pro",

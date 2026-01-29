@@ -47,9 +47,9 @@ multi_agent_system/
 ## 🤖 Supported Models
 
 ### Google Gemini (Recommended)
-- `gemini-3-pro-preview` - Latest, best performance
-- `gemini-2.0-flash` - Fast and capable
-- `gemini-1.5-pro` - Strong reasoning
+- `gemini-3-flash-preview` - Fast, great for general tasks (default)
+- `gemini-3-pro-preview` - Best for coding and complex reasoning
+- `gemini-2.0-flash` - Balanced performance
 
 ### Local (Ollama)
 - `mistral` - Balanced, great for general tasks
