@@ -154,11 +154,29 @@ def web_search_mock(query: str) -> str:
     """
     # Mock results for demo
     mock_results = {
-        "python": "Python is a high-level, interpreted, general-purpose programming language.",
-        "langgraph": "LangGraph is a framework for creating stateful agent graphs, developed by LangChain.",
-        "autogen": "AutoGen is a Microsoft framework for creating multi-party conversational agents.",
-        "ollama": "Ollama allows running LLMs locally like Llama, Mistral, and others.",
-        "gemini": "Google Gemini is a multimodal AI model family by Google DeepMind, capable of understanding text, images, audio, and video.",
+        "python": """Python is a high-level, interpreted, general-purpose programming language.
+Its design philosophy emphasizes code readability with the use of significant indentation.
+Python is dynamically-typed and garbage-collected. It supports multiple programming paradigms,
+including structured (particularly procedural), object-oriented and functional programming.
+It is often described as a 'batteries included' language due to its comprehensive standard library.""",
+        "langgraph": """LangGraph is a library for building stateful, multi-actor applications with LLMs.
+It extends LangChain to create agent workflows that can handle cycles and state persistence.
+Key features include:
+- Cycles and branching
+- Persistence (checkpoints)
+- Human-in-the-loop support
+- Streaming support""",
+        "autogen": """AutoGen is a framework from Microsoft for building multi-agent conversational AI systems.
+It enables agents to converse with each other to solve tasks.
+Agents can be customized, conversable, and seamlessly allow human participation.""",
+        "ollama": """Ollama is a tool for running large language models locally on macOS, Linux, and Windows.
+It bundles model weights, configuration, and data into a single package (Modelfile).
+Common models include Llama 3, Mistral, Gemma, and CodeLlama.""",
+        "gemini": """Google Gemini is a multimodal AI model family built by Google DeepMind.
+It includes Pro, Flash, and Ultra variants.
+- Gemini 1.5 Pro: High reasoning, huge context window (1M+ tokens).
+- Gemini 2.0 Flash: Fastest model for high-frequency tasks.
+- Gemini Nano: On-device model.""",
     }
 
     query_lower = query.lower()
