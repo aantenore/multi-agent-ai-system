@@ -44,11 +44,14 @@ def should_continue(
     if match:
         next_agent = match.group(1).lower()
         if next_agent == "finish":
+            print(f"   [Router] Decision: FINISH (Task completed)")
             return "end"
         if next_agent in ["researcher", "coder", "reviewer"]:
+            print(f"   [Router] Decision: Transfer to {next_agent.upper()}")
             return next_agent
 
     # If orchestrator doesn't specify, end
+    print(f"   [Router] No next agent specified. Ending.")
     return "end"
 
 

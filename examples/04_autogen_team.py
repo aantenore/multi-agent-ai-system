@@ -26,9 +26,10 @@ async def run_single_task(task: str):
     print("-" * 60)
 
     print("\n🚀 Starting AutoGen team...")
-    print("   Planner → plans the approach")
-    print("   Coder → implements the solution")
-    print("   Reviewer → validates and approves")
+    print("   ℹ️  The Scheduler will coordinate the following agents:")
+    print("      • Planner: Decomposition & Strategy")
+    print("      • Coder: implementation")
+    print("      • Reviewer: Quality Assurance")
     print("-" * 60 + "\n")
 
     try:

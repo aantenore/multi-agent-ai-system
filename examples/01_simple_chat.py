@@ -100,6 +100,7 @@ def main():
                 messages.append(AIMessage(content=msg.content))
 
         # Generate response
+        print(f"\n   🔄 generating request for {model}...", end="\r")
         print("\n🤖 Assistant: ", end="", flush=True)
         try:
             # Streaming response
