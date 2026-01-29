@@ -273,4 +273,13 @@ Answer:"""
         # Generate response
         response = self.llm.invoke(messages)
 
-        return response.content
+        content = response.content
+        if isinstance(content, list):
+            # Gemini format: [{'type': 'text', 'text': '...', 'index': 0}]
+            content = "".join(
+                item.get("text", "")
+                for item in content
+                if isinstance(item, dict) and item.get("type") == "text"
+            )
+
+        return content

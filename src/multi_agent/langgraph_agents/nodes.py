@@ -90,6 +90,16 @@ class AgentNode:
         # Invoke LLM
         response = self.llm_with_tools.invoke(messages)
 
+        # Gemini returns list of dicts for content, normalize to string
+        if isinstance(response.content, list):
+            text_content = "".join(
+                item.get("text", "")
+                for item in response.content
+                if isinstance(item, dict) and item.get("type") == "text"
+            )
+            # Update content in place (safe for AIMessage)
+            response.content = text_content
+
         logger.info(f"[{self.name}] Response generated")
 
         return {
